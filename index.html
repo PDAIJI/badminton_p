@@ -881,43 +881,51 @@ function openSwapModal(courtId,playerId){
 function confirmSwap(inId,src,srcCid){
   const court=courts.find(c=>c.id===swapCourtId);
   if(!court?.match){closeModal('swapModal');return;}
-  const inP=gp(inId),outP=gp(swapOutId);
   const m=court.match;
 
+  // ดึง object จาก allFour โดยตรง ไม่ใช่จาก players (เพื่อหลีกเลี่ยง reference ซ้ำ)
+  const outP={...m.allFour.find(p=>p.id===swapOutId)};
+  const inPObj = src==='same'
+    ? {...m.allFour.find(p=>p.id===inId)}
+    : src==='court'
+      ? {...courts.find(c=>c.id===srcCid)?.match?.allFour?.find(p=>p.id===inId)}
+      : {...gp(inId)};
+
   if(src==='same'){
-    const m=court.match;
     const outInT1=m.team1.some(p=>p.id===swapOutId);
     const inInT1 =m.team1.some(p=>p.id===inId);
 
     if(outInT1===inInT1){
-      // ทีมเดียวกัน — สลับตำแหน่งในทีมเดียวกัน
+      // ทีมเดียวกัน
       const t=outInT1?m.team1:m.team2;
       const oi=t.findIndex(p=>p.id===swapOutId);
       const ii=t.findIndex(p=>p.id===inId);
-      if(oi!==-1)t[oi]=inP;
+      if(oi!==-1)t[oi]=inPObj;
       if(ii!==-1)t[ii]=outP;
     } else {
-      // คนละทีม — หา index ก่อน แล้วค่อยแทนพร้อมกัน
+      // คนละทีม
       const tOut=outInT1?m.team1:m.team2;
       const tIn =inInT1 ?m.team1:m.team2;
       const oi=tOut.findIndex(p=>p.id===swapOutId);
       const ii=tIn.findIndex(p=>p.id===inId);
-      if(oi!==-1)tOut[oi]=inP;   // ใส่ inP เข้าทีมของ outP
-      if(ii!==-1)tIn[ii]=outP;   // ใส่ outP เข้าทีมของ inP
+      if(oi!==-1)tOut[oi]=inPObj;
+      if(ii!==-1)tIn[ii]=outP;
     }
     // อัปเดต allFour
     const ao=m.allFour.findIndex(p=>p.id===swapOutId);
     const ai=m.allFour.findIndex(p=>p.id===inId);
-    if(ao!==-1)m.allFour[ao]=inP;
+    if(ao!==-1)m.allFour[ao]=inPObj;
     if(ai!==-1)m.allFour[ai]=outP;
 
   } else {
+    // สลับกับคิว หรือสนามอื่น — แทนที่ outP ด้วย inPObj ในสนามนี้
     const rep=(team,fromId,toP)=>{const i=team.findIndex(p=>p.id===fromId);if(i!==-1){team[i]=toP;return true;}return false;};
-    rep(m.team1,swapOutId,inP)||rep(m.team2,swapOutId,inP);
-    const i4=m.allFour.findIndex(p=>p.id===swapOutId);if(i4!==-1)m.allFour[i4]=inP;
+    rep(m.team1,swapOutId,inPObj)||rep(m.team2,swapOutId,inPObj);
+    const i4=m.allFour.findIndex(p=>p.id===swapOutId);if(i4!==-1)m.allFour[i4]=inPObj;
 
     if(src==='queue'){
-      queue=queue.filter(id=>id!==inId);queue.push(swapOutId);
+      queue=queue.filter(id=>id!==inId);
+      queue.push(swapOutId);
     } else {
       const other=courts.find(c=>c.id===srcCid);
       rep(other.match.team1,inId,outP)||rep(other.match.team2,inId,outP);
@@ -925,7 +933,8 @@ function confirmSwap(inId,src,srcCid){
     }
   }
 
-  closeModal('swapModal');renderSession();notify(`สลับ ${outP.name} ↔ ${inP.name} แล้ว 🔄`);
+  const outName=gp(swapOutId)?.name, inName=gp(inId)?.name;
+  closeModal('swapModal');renderSession();notify(`สลับ ${outName} ↔ ${inName} แล้ว 🔄`);
 }
 
 // CANCEL MATCH
