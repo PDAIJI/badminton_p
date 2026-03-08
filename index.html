@@ -117,15 +117,21 @@ tbody tr:nth-child(even) { background: transparent; }
 
 <!-- PROMPTPAY SETTING MODAL -->
 <div class="modal-bg" id="ppModal">
-  <div class="modal" style="max-width:340px">
+  <div class="modal" style="max-width:360px">
     <h3>📱 ตั้งค่า PromptPay</h3>
     <div style="margin:14px 0 10px">
-      <div class="lbl mb8">เบอร์โทรที่ผูก PromptPay</div>
-      <input id="ppInput" placeholder="เช่น 0970022780" style="width:100%;font-size:16px" maxlength="10">
-    </div>
-    <div style="margin-bottom:14px">
       <div class="lbl mb8">ชื่อบัญชี (แสดงให้คนโอนยืนยัน)</div>
       <input id="ppNameInput" placeholder="เช่น ดุสิต ศิริสาคร" style="width:100%;font-size:15px">
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="lbl mb8">รูป QR PromptPay</div>
+      <div style="border:2px dashed #334155;border-radius:10px;padding:16px;text-align:center;cursor:pointer" onclick="document.getElementById('qrFileInput').click()">
+        <div id="qrPreview" style="margin-bottom:8px">
+          <div style="font-size:32px">📷</div>
+          <div style="font-size:12px;color:#64748b">กดเพื่อเลือกรูป QR จากเครื่อง</div>
+        </div>
+        <input type="file" id="qrFileInput" accept="image/*" style="display:none" onchange="previewQRImage(event)">
+      </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-gray" onclick="closeModal('ppModal')">ยกเลิก</button>
@@ -138,10 +144,10 @@ tbody tr:nth-child(even) { background: transparent; }
 <div class="modal-bg" id="qrModal">
   <div class="modal" style="max-width:340px;text-align:center">
     <h3 id="qrModalTitle" style="margin-bottom:2px"></h3>
-    <div id="qrModalAmt" style="font-size:26px;font-weight:800;color:#10b981;margin-bottom:6px"></div>
+    <div id="qrModalAmt" style="font-size:26px;font-weight:800;color:#10b981;margin-bottom:10px"></div>
     <div id="qrCanvas" style="display:flex;justify-content:center;margin-bottom:10px"></div>
-    <div style="font-size:12px;color:#64748b;margin-bottom:4px">สแกนจ่าย PromptPay</div>
-    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:14px">ชื่อบัญชี: <span id="qrAccountName" style="color:#e2e8f0"></span></div>
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:4px">ชื่อบัญชี: <span id="qrAccountName" style="color:#e2e8f0"></span></div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px">สแกนจ่าย PromptPay</div>
     <button class="btn btn-gray" onclick="closeModal('qrModal')">ปิด</button>
   </div>
 </div>
@@ -368,12 +374,13 @@ let matchLog=[];      // [{round, courtId, team1, team2, allFour, winner}]
 let sessionHistory=[]; // [{date, label, ids}] — บันทึก session เก่า
 let promptPayNumber='0970022780';
 let promptPayName='ดุสิต ศิริสาคร';
+let promptPayQR=''; // base64 รูป QR จริง
 let swapCourtId=null, swapOutId=null;
 let cancelCourtId=null;
 let shuttlePid=null, shuttleTmp=0;
 
-function saveData(){try{localStorage.setItem(SK,JSON.stringify({players,chipPerUnit,chipBuyPrice,chipBuyAmount,sessionHistory,promptPayNumber,promptPayName}));}catch(e){}}
-function loadData(){try{const d=JSON.parse(localStorage.getItem(SK)||'{}');players=d.players||[];chipPerUnit=d.chipPerUnit||27;chipBuyPrice=d.chipBuyPrice||260;chipBuyAmount=d.chipBuyAmount||6;sessionHistory=d.sessionHistory||[];promptPayNumber=d.promptPayNumber||'0970022780';promptPayName=d.promptPayName||'ดุสิต ศิริสาคร';}catch(e){}}
+function saveData(){try{localStorage.setItem(SK,JSON.stringify({players,chipPerUnit,chipBuyPrice,chipBuyAmount,sessionHistory,promptPayNumber,promptPayName,promptPayQR}));}catch(e){}}
+function loadData(){try{const d=JSON.parse(localStorage.getItem(SK)||'{}');players=d.players||[];chipPerUnit=d.chipPerUnit||27;chipBuyPrice=d.chipBuyPrice||260;chipBuyAmount=d.chipBuyAmount||6;sessionHistory=d.sessionHistory||[];promptPayNumber=d.promptPayNumber||'0970022780';promptPayName=d.promptPayName||'ดุสิต ศิริสาคร';promptPayQR=d.promptPayQR||'';}catch(e){}}
 
 function pairKey(a,b){return [a,b].sort().join('_');}
 function pairCount(a,b){return pairHistory[pairKey(a,b)]||0;}
@@ -858,38 +865,50 @@ function doEndSession(){
 }
 
 function openPromptPaySetting(){
-  document.getElementById('ppInput').value=promptPayNumber;
   document.getElementById('ppNameInput').value=promptPayName;
+  // แสดง preview รูปถ้ามี
+  const prev=document.getElementById('qrPreview');
+  if(promptPayQR){
+    prev.innerHTML=`<img src="${promptPayQR}" style="max-width:180px;max-height:180px;border-radius:8px"><div style="font-size:11px;color:#10b981;margin-top:6px">✓ มีรูป QR แล้ว — กดเพื่อเปลี่ยน</div>`;
+  } else {
+    prev.innerHTML='<div style="font-size:32px">📷</div><div style="font-size:12px;color:#64748b">กดเพื่อเลือกรูป QR จากเครื่อง</div>';
+  }
   openModal('ppModal');
 }
+function previewQRImage(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result;
+    document.getElementById('qrPreview').innerHTML=`<img src="${b64}" style="max-width:180px;max-height:180px;border-radius:8px"><div style="font-size:11px;color:#10b981;margin-top:6px">✓ เลือกรูปแล้ว</div>`;
+    promptPayQR=b64; // เก็บไว้ชั่วคราวก่อน save
+  };
+  reader.readAsDataURL(file);
+}
 function savePromptPay(){
-  const v=document.getElementById('ppInput').value.trim().replace(/\D/g,'');
-  if(v.length!==10){notify('เบอร์ต้องมี 10 หลัก','err');return;}
   const n=document.getElementById('ppNameInput').value.trim();
   if(!n){notify('กรุณาใส่ชื่อบัญชี','err');return;}
-  promptPayNumber=v;
+  if(!promptPayQR){notify('กรุณาเลือกรูป QR ก่อน','err');return;}
   promptPayName=n;
   saveData();
   closeModal('ppModal');
   notify('บันทึก PromptPay แล้ว ✅');
 }
-
-// PROMPTPAY QR
 function openQR(id, amt){
   const p=gp(id);
   document.getElementById('qrModalTitle').textContent=`💳 ${p.name}`;
   document.getElementById('qrModalAmt').textContent=`${amt} บาท`;
   document.getElementById('qrAccountName').textContent=promptPayName;
   const el=document.getElementById('qrCanvas');
-  el.innerHTML='<div style="color:#64748b;padding:20px">กำลังโหลด QR...</div>';
+  if(promptPayQR){
+    el.innerHTML=`<img src="${promptPayQR}" style="width:220px;height:220px;border-radius:8px;object-fit:contain;background:#fff;padding:8px">`;
+  } else {
+    el.innerHTML=`<div style="padding:20px;color:#f59e0b;font-size:13px">ยังไม่มีรูป QR<br>ไปตั้งค่าที่ปุ่ม 📱 PromptPay ก่อนนะครับ</div>`;
+  }
   openModal('qrModal');
-  if(window.QRCode){renderQR(el,amt);return;}
-  const s=document.createElement('script');
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-  s.onload=()=>renderQR(el,amt);
-  s.onerror=()=>{el.innerHTML='<div style="color:#ef4444">ไม่มี internet ไม่สามารถสร้าง QR ได้</div>';};
-  document.head.appendChild(s);
 }
+
+// PROMPTPAY QR
 function renderQR(el, amt){
   el.innerHTML='';
   const payload=buildPromptPayPayload(promptPayNumber, amt);
