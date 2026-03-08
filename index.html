@@ -882,19 +882,41 @@ function confirmSwap(inId,src,srcCid){
   const court=courts.find(c=>c.id===swapCourtId);
   if(!court?.match){closeModal('swapModal');return;}
   const inP=gp(inId),outP=gp(swapOutId);
-  const rep=(team,fromId,toP)=>{const i=team.findIndex(p=>p.id===fromId);if(i!==-1){team[i]=toP;return true;}return false;};
-  rep(court.match.team1,swapOutId,inP)||rep(court.match.team2,swapOutId,inP);
-  const i4=court.match.allFour.findIndex(p=>p.id===swapOutId);if(i4!==-1)court.match.allFour[i4]=inP;
-  if(src==='queue'){
-    queue=queue.filter(id=>id!==inId);queue.push(swapOutId);
-  } else if(src==='same'){
-    rep(court.match.team1,inId,outP)||rep(court.match.team2,inId,outP);
-    const io=court.match.allFour.findIndex(p=>p.id===inId);if(io!==-1)court.match.allFour[io]=outP;
+  const m=court.match;
+
+  if(src==='same'){
+    // สลับตำแหน่งของ 2 คนในสนามเดียวกัน — อาจอยู่คนละทีมก็ได้
+    const rep=(team,fromId,toP)=>{const i=team.findIndex(p=>p.id===fromId);if(i!==-1){team[i]=toP;return true;}return false;};
+    // สลับใน team1/team2
+    const outInT1=m.team1.some(p=>p.id===swapOutId);
+    const inInT1=m.team1.some(p=>p.id===inId);
+    if(outInT1===inInT1){
+      // อยู่ทีมเดียวกัน — สลับตำแหน่งกันในทีม
+      rep(outInT1?m.team1:m.team2, swapOutId, inP);
+      rep(inInT1?m.team1:m.team2, inId, outP);
+    } else {
+      // อยู่คนละทีม — สลับข้ามทีม
+      rep(m.team1, swapOutId, inP); rep(m.team2, swapOutId, inP);
+      rep(m.team1, inId, outP);     rep(m.team2, inId, outP);
+    }
+    // อัปเดต allFour
+    const io=m.allFour.findIndex(p=>p.id===swapOutId);if(io!==-1)m.allFour[io]=inP;
+    const ii=m.allFour.findIndex(p=>p.id===inId);if(ii!==-1)m.allFour[ii]=outP;
+
   } else {
-    const other=courts.find(c=>c.id===srcCid);
-    rep(other.match.team1,inId,outP)||rep(other.match.team2,inId,outP);
-    const io=other.match.allFour.findIndex(p=>p.id===inId);if(io!==-1)other.match.allFour[io]=outP;
+    const rep=(team,fromId,toP)=>{const i=team.findIndex(p=>p.id===fromId);if(i!==-1){team[i]=toP;return true;}return false;};
+    rep(m.team1,swapOutId,inP)||rep(m.team2,swapOutId,inP);
+    const i4=m.allFour.findIndex(p=>p.id===swapOutId);if(i4!==-1)m.allFour[i4]=inP;
+
+    if(src==='queue'){
+      queue=queue.filter(id=>id!==inId);queue.push(swapOutId);
+    } else {
+      const other=courts.find(c=>c.id===srcCid);
+      rep(other.match.team1,inId,outP)||rep(other.match.team2,inId,outP);
+      const io=other.match.allFour.findIndex(p=>p.id===inId);if(io!==-1)other.match.allFour[io]=outP;
+    }
   }
+
   closeModal('swapModal');renderSession();notify(`สลับ ${outP.name} ↔ ${inP.name} แล้ว 🔄`);
 }
 
