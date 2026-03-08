@@ -1033,17 +1033,17 @@ function renderCourts(){
 
     const playerRow=(p,courtId)=>{
       const shutt=sShuttle[p.id]||0,paid=sPaid[p.id],games=sGames[p.id]||0;
-      return`<div class="flex sb" style="padding:5px 0;border-bottom:1px solid #0f172a">
+      return`<div class="flex sb" style="padding:7px 0;border-bottom:1px solid #0f172a">
         <div>
-          <div class="flex gap6" style="align-items:center">
-            <span style="font-weight:800;font-size:15px">${p.name}</span>
+          <div class="flex gap8" style="align-items:center">
+            <span style="font-weight:800;font-size:19px">${p.name}</span>
             ${badgeSession(p.level)}
-            <span class="badge ${paid?'paid-y':'paid-n'}" style="font-size:10px;padding:1px 5px">${paid?'💰':'⏳'}</span>
-            ${shutt>0?`<span class="badge shutt-b" style="font-size:10px">🏸${shutt}</span>`:''}
-            <span style="font-size:10px;color:#475569">🎮${games}</span>
+            <span class="badge ${paid?'paid-y':'paid-n'}" style="font-size:11px;padding:2px 6px">${paid?'💰':'⏳'}</span>
+            ${shutt>0?`<span class="badge shutt-b" style="font-size:11px">🏸${shutt}</span>`:''}
+            <span style="font-size:12px;color:#475569">🎮${games}</span>
           </div>
         </div>
-        <button onclick="openSwapModal(${courtId},${p.id})" style="background:none;border:1px solid #334155;color:#f59e0b;cursor:pointer;border-radius:6px;padding:2px 8px;font-size:12px;flex-shrink:0;margin-left:6px">🔄</button>
+        <button onclick="openSwapModal(${courtId},${p.id})" style="background:none;border:1px solid #334155;color:#f59e0b;cursor:pointer;border-radius:6px;padding:3px 10px;font-size:14px;flex-shrink:0;margin-left:6px">🔄</button>
       </div>`;
     };
 
