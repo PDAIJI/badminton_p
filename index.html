@@ -626,16 +626,24 @@ function openSummary(){
       const p=gp(id);if(!p)return'';
       const shutt=sShuttle[id]||0,games=sGames[id]||0,paid=sPaid[id];
       const oweAmt=chipBuyPrice+(shutt*chipPerUnit);
+      const shuttCell=shutt>0
+        ?`<span style="color:#f59e0b;font-weight:800;font-size:13px">🏸 ${shutt} ลูก</span>`
+        :`<span style="color:#10b981;font-weight:700">−</span>`;
+      let amtCell;
+      if(paid && shutt===0){
+        amtCell=`<span style="color:#10b981;font-weight:700">✓ เรียบร้อย</span>`;
+      } else if(paid && shutt>0){
+        amtCell=`<span style="color:#f59e0b;font-weight:700">ติด ${shutt*chipPerUnit} ฿</span>`;
+      } else {
+        amtCell=`<span style="color:#ef4444;font-weight:700">${oweAmt} ฿</span>`
+          +(shutt>0?`<div style="font-size:11px;color:#64748b">260 + ${shutt}×${chipPerUnit}฿</div>`:'');
+      }
       return`<tr>
         <td style="font-weight:700">${p.name}</td>
         <td style="text-align:center">${games}</td>
         <td><span class="badge ${paid?'paid-y':'paid-n'}">${paid?'จ่ายแล้ว':'ยังไม่จ่าย'}</span></td>
-        <td style="text-align:center">${shutt>0?`<span style="color:#0d9488;font-weight:700">${shutt} ลูก</span>`:'−'}</td>
-        <td style="font-weight:700;${paid?'color:#10b981':'color:#f59e0b'}">
-          ${paid
-            ?(shutt>0?`ติด ${shutt*chipPerUnit} ฿`:'✓ เรียบร้อย')
-            :`${oweAmt} ฿`}
-        </td>
+        <td style="text-align:center">${shuttCell}</td>
+        <td>${amtCell}</td>
       </tr>`;
     }).join('')}</tbody></table></div>`;
   document.getElementById('summaryContent').innerHTML=html;
