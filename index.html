@@ -68,6 +68,8 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; padding: 8px 10px; color: #64748b; font-size: 12px; border-bottom: 1px solid #334155; }
 td { padding: 8px 10px; border-bottom: 1px solid #1e293b; }
 tr:last-child td { border-bottom: none; }
+tbody tr:nth-child(odd) { background: #ffffff08; }
+tbody tr:nth-child(even) { background: transparent; }
 @media (max-width: 520px) {
   .two-col { grid-template-columns: 1fr; }
   .vs-grid { grid-template-columns: 1fr 28px 1fr; }
