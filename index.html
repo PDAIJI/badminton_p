@@ -223,7 +223,7 @@ tr:last-child td { border-bottom: none; }
     <div style="display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:end">
       <div><div class="lbl">ชื่อ</div><input id="newName" placeholder="ชื่อผู้เล่น..." style="width:100%" onkeydown="if(event.key==='Enter')addPlayer()"></div>
       <div><div class="lbl">ระดับ</div>
-        <select id="newLevel" style="width:100%"><option>N</option><option>C</option><option selected>B</option><option>A</option><option>S</option></select>
+        <select id="newLevel" style="width:100%"><option>N</option><option>C</option><option selected>B</option><option>A</option><option>S</option><option>P</option></select>
       </div>
       <button class="btn btn-blue" onclick="addPlayer()" style="align-self:end">+ เพิ่ม</button>
     </div>
@@ -292,6 +292,7 @@ tr:last-child td { border-bottom: none; }
     <div class="flex sb mb16">
       <h2>🏸 กำลังเล่น</h2>
       <div class="flex gap6">
+        <button class="btn btn-gray btn-sm" onclick="toggleLevelBadge()" id="toggleBadgeBtn">🏷 ซ่อนมือ</button>
         <button class="btn btn-gray btn-sm" onclick="addCourtLive()">+ สนาม</button>
         <button class="btn btn-yellow btn-sm" onclick="openSummary()">📊 สรุป / จบ</button>
       </div>
@@ -316,9 +317,11 @@ tr:last-child td { border-bottom: none; }
 </div>
 
 <script>
-const LEVELS=['N','C','B','A','S'];
-const COLORS={N:'#94a3b8',C:'#60a5fa',B:'#34d399',A:'#f59e0b',S:'#f43f5e'};
+const LEVELS=['N','C','B','A','S','P'];
+const COLORS={N:'#94a3b8',C:'#60a5fa',B:'#34d399',A:'#f59e0b',S:'#f43f5e',P:'#a855f7'};
 const SK='badminton_v4';
+
+let showLevelBadge=true;
 
 let players=[], chipPerUnit=27, chipBuyPrice=260, chipBuyAmount=6;
 let checkedIn=[], courts=[], queue=[], resting=[];
@@ -346,6 +349,15 @@ function recordPairs(allFour){
 function lvlIdx(l){return LEVELS.indexOf(l);}
 function canPair(a,b){return Math.abs(lvlIdx(a.level)-lvlIdx(b.level))<=1;}
 function badge(lv){return `<span class="badge" style="background:${COLORS[lv]}33;color:${COLORS[lv]}">${lv}</span>`;}
+function badgeSession(lv){
+  if(!showLevelBadge)return'';
+  return badge(lv);
+}
+function toggleLevelBadge(){
+  showLevelBadge=!showLevelBadge;
+  document.getElementById('toggleBadgeBtn').textContent=showLevelBadge?'🏷 ซ่อนมือ':'🏷 แสดงมือ';
+  renderSession();
+}
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function notify(msg,type='ok'){const el=document.getElementById('notif');el.textContent=msg;el.className='notif '+type;el.style.display='block';setTimeout(()=>el.style.display='none',2600);}
 function gp(id){return players.find(p=>p.id===id);}
@@ -947,7 +959,7 @@ function renderCourts(){
         const shutt=sShuttle[p.id]||0,paid=sPaid[p.id],games=sGames[p.id]||0;
         return`<div class="flex sb mb8">
           <div class="flex gap6" style="flex-wrap:wrap">
-            <span style="font-weight:700">${p.name}</span>${badge(p.level)}
+            <span style="font-weight:700">${p.name}</span>${badgeSession(p.level)}
             <span style="font-size:10px;color:#64748b">🎮${games}</span>
             ${shutt>0?`<span class="badge shutt-b">🏸${shutt}</span>`:''}
             <span class="badge ${paid?'paid-y':'paid-n'}" style="font-size:10px">${paid?'💰':'⏳'}</span>
@@ -976,7 +988,7 @@ function renderQueue(){
     const shutt=sShuttle[id]||0,games=sGames[id]||0;
     return`<div class="tag">
       <span style="font-size:10px;color:#475569">#${i+1}</span>
-      <span style="font-weight:600">${p.name}</span>${badge(p.level)}
+      <span style="font-weight:600">${p.name}</span>${badgeSession(p.level)}
       <span style="font-size:10px;color:#64748b">🎮${games}</span>
       ${shutt>0?`<span class="badge shutt-b">🏸${shutt}</span>`:''}
       <button onclick="pausePlayer(${id})" style="background:none;border:none;color:#f59e0b;cursor:pointer;font-size:14px;padding:0 1px" title="พัก">⏸</button>
@@ -992,7 +1004,7 @@ function renderResting(){
   el.innerHTML=resting.map(id=>{
     const p=gp(id);if(!p)return'';
     return`<div class="prow">
-      <div class="flex gap6"><span style="font-weight:600">${p.name}</span>${badge(p.level)}<span style="font-size:10px;color:#64748b">🎮${sGames[id]||0}</span></div>
+      <div class="flex gap6"><span style="font-weight:600">${p.name}</span>${badgeSession(p.level)}<span style="font-size:10px;color:#64748b">🎮${sGames[id]||0}</span></div>
       <div class="flex gap4">
         <button class="btn btn-gray btn-xs" onclick="returnToQueue(${id})">▶ คิว</button>
         <button class="btn btn-red btn-xs" onclick="quitPlayer(${id})">✕</button>
@@ -1007,7 +1019,7 @@ function renderLate(){
   const late=players.filter(p=>!checkedIn.includes(p.id)&&!queue.includes(p.id)&&!resting.includes(p.id)&&!busy.includes(p.id));
   if(!late.length){el.innerHTML='<span class="empty">ทุกคนเข้าร่วมแล้ว</span>';return;}
   el.innerHTML=late.map(p=>`<div class="prow">
-    <div class="flex gap6"><span style="font-weight:600">${p.name}</span>${badge(p.level)}</div>
+    <div class="flex gap6"><span style="font-weight:600">${p.name}</span>${badgeSession(p.level)}</div>
     <button class="btn btn-blue btn-xs" onclick="addLate(${p.id})">+ เข้าร่วม</button>
   </div>`).join('');
 }
