@@ -882,58 +882,57 @@ function confirmSwap(inId,src,srcCid){
   const court=courts.find(c=>c.id===swapCourtId);
   if(!court?.match){closeModal('swapModal');return;}
   const m=court.match;
-
-  // ดึง object จาก allFour โดยตรง ไม่ใช่จาก players (เพื่อหลีกเลี่ยง reference ซ้ำ)
-  const outP={...m.allFour.find(p=>p.id===swapOutId)};
-  const inPObj = src==='same'
-    ? {...m.allFour.find(p=>p.id===inId)}
-    : src==='court'
-      ? {...courts.find(c=>c.id===srcCid)?.match?.allFour?.find(p=>p.id===inId)}
-      : {...gp(inId)};
+  const outName=gp(swapOutId)?.name, inName=gp(inId)?.name;
 
   if(src==='same'){
+    // สลับ 2 คนในสนามเดียวกัน
+    // สร้าง map id→player จาก allFour แล้ว swap id สองตัว
+    const idList=m.allFour.map(p=>p.id); // [A,B,C,D]
+    const oi=idList.indexOf(swapOutId);
+    const ii=idList.indexOf(inId);
+    if(oi===-1||ii===-1){closeModal('swapModal');return;}
+    // swap ids
+    idList[oi]=inId;
+    idList[ii]=swapOutId;
+    // สร้าง allFour ใหม่โดย lookup จาก players
+    const newAllFour=idList.map(id=>({...gp(id)}));
+    // team1 ยังคงเป็น index 0,1 และ team2 เป็น index 2,3 ของ allFour เดิม
+    // แต่เราต้องรู้ว่า outP อยู่ทีมไหน
     const outInT1=m.team1.some(p=>p.id===swapOutId);
     const inInT1 =m.team1.some(p=>p.id===inId);
+    // สร้าง team ใหม่โดย map จาก team เดิม แต่ swap id
+    const swapInTeam=(team)=>team.map(p=>{
+      if(p.id===swapOutId)return{...gp(inId)};
+      if(p.id===inId)return{...gp(swapOutId)};
+      return{...p};
+    });
+    m.team1=swapInTeam(m.team1);
+    m.team2=swapInTeam(m.team2);
+    m.allFour=newAllFour;
 
-    if(outInT1===inInT1){
-      // ทีมเดียวกัน
-      const t=outInT1?m.team1:m.team2;
-      const oi=t.findIndex(p=>p.id===swapOutId);
-      const ii=t.findIndex(p=>p.id===inId);
-      if(oi!==-1)t[oi]=inPObj;
-      if(ii!==-1)t[ii]=outP;
-    } else {
-      // คนละทีม
-      const tOut=outInT1?m.team1:m.team2;
-      const tIn =inInT1 ?m.team1:m.team2;
-      const oi=tOut.findIndex(p=>p.id===swapOutId);
-      const ii=tIn.findIndex(p=>p.id===inId);
-      if(oi!==-1)tOut[oi]=inPObj;
-      if(ii!==-1)tIn[ii]=outP;
-    }
-    // อัปเดต allFour
-    const ao=m.allFour.findIndex(p=>p.id===swapOutId);
-    const ai=m.allFour.findIndex(p=>p.id===inId);
-    if(ao!==-1)m.allFour[ao]=inPObj;
-    if(ai!==-1)m.allFour[ai]=outP;
+  } else if(src==='queue'){
+    // เอาคนจากคิวมาแทน swapOut
+    const inP={...gp(inId)};
+    m.team1=m.team1.map(p=>p.id===swapOutId?inP:{...p});
+    m.team2=m.team2.map(p=>p.id===swapOutId?inP:{...p});
+    m.allFour=m.allFour.map(p=>p.id===swapOutId?inP:{...p});
+    queue=queue.filter(id=>id!==inId);
+    queue.push(swapOutId);
 
-  } else {
-    // สลับกับคิว หรือสนามอื่น — แทนที่ outP ด้วย inPObj ในสนามนี้
-    const rep=(team,fromId,toP)=>{const i=team.findIndex(p=>p.id===fromId);if(i!==-1){team[i]=toP;return true;}return false;};
-    rep(m.team1,swapOutId,inPObj)||rep(m.team2,swapOutId,inPObj);
-    const i4=m.allFour.findIndex(p=>p.id===swapOutId);if(i4!==-1)m.allFour[i4]=inPObj;
-
-    if(src==='queue'){
-      queue=queue.filter(id=>id!==inId);
-      queue.push(swapOutId);
-    } else {
-      const other=courts.find(c=>c.id===srcCid);
-      rep(other.match.team1,inId,outP)||rep(other.match.team2,inId,outP);
-      const io=other.match.allFour.findIndex(p=>p.id===inId);if(io!==-1)other.match.allFour[io]=outP;
-    }
+  } else if(src==='court'){
+    // สลับกับคนจากสนามอื่น
+    const other=courts.find(c=>c.id===srcCid);
+    if(!other?.match){closeModal('swapModal');return;}
+    const inP={...gp(inId)};
+    const outP={...gp(swapOutId)};
+    m.team1=m.team1.map(p=>p.id===swapOutId?inP:{...p});
+    m.team2=m.team2.map(p=>p.id===swapOutId?inP:{...p});
+    m.allFour=m.allFour.map(p=>p.id===swapOutId?inP:{...p});
+    other.match.team1=other.match.team1.map(p=>p.id===inId?outP:{...p});
+    other.match.team2=other.match.team2.map(p=>p.id===inId?outP:{...p});
+    other.match.allFour=other.match.allFour.map(p=>p.id===inId?outP:{...p});
   }
 
-  const outName=gp(swapOutId)?.name, inName=gp(inId)?.name;
   closeModal('swapModal');renderSession();notify(`สลับ ${outName} ↔ ${inName} แล้ว 🔄`);
 }
 
@@ -994,11 +993,9 @@ function renderCourts(){
     </div>`;
     const{team1,team2}=court.match;
 
-    // รวม matchLog + matches ที่กำลังเล่นอยู่ทุกสนาม เพื่อให้ข้อมูล realtime หลังสลับคน
-    const allMatches=[
-      ...matchLog,
-      ...courts.filter(c=>c.match).map(c=>({team1:c.match.team1,team2:c.match.team2}))
-    ];
+    // ใช้แค่ matchLog (เกมที่จบแล้ว) ไม่รวม match ที่กำลังเล่นอยู่
+    // เพราะตัวเลขควรแสดงประวัติที่ผ่านมา ไม่ใช่รอบปัจจุบัน
+    const allMatches=[...matchLog];
     const partnerCountFor=(a,b)=>{
       let c=0;
       allMatches.forEach(m=>{
