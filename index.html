@@ -955,22 +955,22 @@ function renderCourts(){
     </div>`;
     const{team1,team2}=court.match;
 
-    // helper: pair stat between 2 players
-    const pairStat=(a,b)=>{
-      const pk=pairKey(a.id,b.id);
-      const pt=0, op=0; // will compute inline
-      return{partner:partnerCountFor(a.id,b.id), opp:oppCountFor(a.id,b.id)};
-    };
+    // รวม matchLog + matches ที่กำลังเล่นอยู่ทุกสนาม เพื่อให้ข้อมูล realtime หลังสลับคน
+    const allMatches=[
+      ...matchLog,
+      ...courts.filter(c=>c.match).map(c=>({team1:c.match.team1,team2:c.match.team2}))
+    ];
     const partnerCountFor=(a,b)=>{
       let c=0;
-      matchLog.forEach(m=>{
-        if(m.team1.length>=2){if((m.team1[0].id===a&&m.team1[1].id===b)||(m.team1[0].id===b&&m.team1[1].id===a))c++;}
-        if(m.team2.length>=2){if((m.team2[0].id===a&&m.team2[1].id===b)||(m.team2[0].id===b&&m.team2[1].id===a))c++;}
+      allMatches.forEach(m=>{
+        if(m.team1&&m.team1.length>=2){if((m.team1[0].id===a&&m.team1[1].id===b)||(m.team1[0].id===b&&m.team1[1].id===a))c++;}
+        if(m.team2&&m.team2.length>=2){if((m.team2[0].id===a&&m.team2[1].id===b)||(m.team2[0].id===b&&m.team2[1].id===a))c++;}
       });return c;
     };
     const oppCountFor=(a,b)=>{
       let c=0;
-      matchLog.forEach(m=>{
+      allMatches.forEach(m=>{
+        if(!m.team1||!m.team2)return;
         const inT1=m.team1.some(p=>p.id===a),inT2=m.team2.some(p=>p.id===a);
         const inT1b=m.team1.some(p=>p.id===b),inT2b=m.team2.some(p=>p.id===b);
         if((inT1&&inT2b)||(inT2&&inT1b))c++;
