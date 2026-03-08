@@ -1017,10 +1017,7 @@ function renderCourts(){
     const teamPairBadge=(pa,pb)=>{
       const pt=partnerCountFor(pa.id,pb.id), op=oppCountFor(pa.id,pb.id);
       if(!pt&&!op)return'';
-      return`<div style="font-size:10px;margin-top:2px;display:flex;gap:6px">
-        ${pt>0?`<span style="color:#818cf8">🤝${pt}</span>`:''}
-        ${op>0?`<span style="color:#f59e0b">⚔️${op}</span>`:''}
-      </div>`;
+      return[pt>0?`🤝${pt}`:'', op>0?`⚔️${op}`:''].filter(Boolean).join(' ');
     };
     // vs pair badge (one from each team)
     const vsPairBadges=(t1,t2)=>{
@@ -1048,11 +1045,17 @@ function renderCourts(){
       </div>`;
     };
 
-    const teamBox=(team,num,otherTeam)=>`<div class="team-box">
-      ${team.map(p=>playerRow(p,court.id)).join('')}
-      ${teamPairBadge(team[0],team[1])}
-      <button class="btn btn-green" style="width:100%;margin-top:8px;font-size:13px;padding:8px" onclick="finishMatch(${court.id},${num})">🏆 ทีมนี้ชนะ</button>
-    </div>`;
+    const teamBox=(team,num,otherTeam)=>{
+      const pb=teamPairBadge(team[0],team[1]);
+      return`<div class="team-box" style="display:flex;flex-direction:column">
+        <div style="flex:1">
+          ${team.map(p=>playerRow(p,court.id)).join('')}
+        </div>
+        <button class="btn btn-green" style="width:100%;margin-top:8px;font-size:13px;padding:8px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="finishMatch(${court.id},${num})">
+          🏆 ทีมนี้ชนะ${pb?` <span style="font-size:11px;opacity:.85;font-weight:400">${pb}</span>`:''}
+        </button>
+      </div>`;
+    };
 
     return`<div class="card highlight mb12">
       <div class="flex sb mb8">
