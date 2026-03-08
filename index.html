@@ -954,27 +954,77 @@ function renderCourts(){
       <div class="empty">ว่างอยู่ — กด "จับคู่" เพื่อเริ่ม</div>
     </div>`;
     const{team1,team2}=court.match;
-    const teamHtml=(team,num)=>`<div class="team-box">
-      ${team.map(p=>{
-        const shutt=sShuttle[p.id]||0,paid=sPaid[p.id],games=sGames[p.id]||0;
-        return`<div class="flex sb mb8">
-          <div class="flex gap6" style="flex-wrap:wrap">
-            <span style="font-weight:700">${p.name}</span>${badgeSession(p.level)}
-            <span style="font-size:10px;color:#64748b">🎮${games}</span>
-            ${shutt>0?`<span class="badge shutt-b">🏸${shutt}</span>`:''}
-            <span class="badge ${paid?'paid-y':'paid-n'}" style="font-size:10px">${paid?'💰':'⏳'}</span>
+
+    // helper: pair stat between 2 players
+    const pairStat=(a,b)=>{
+      const pk=pairKey(a.id,b.id);
+      const pt=0, op=0; // will compute inline
+      return{partner:partnerCountFor(a.id,b.id), opp:oppCountFor(a.id,b.id)};
+    };
+    const partnerCountFor=(a,b)=>{
+      let c=0;
+      matchLog.forEach(m=>{
+        if(m.team1.length>=2){if((m.team1[0].id===a&&m.team1[1].id===b)||(m.team1[0].id===b&&m.team1[1].id===a))c++;}
+        if(m.team2.length>=2){if((m.team2[0].id===a&&m.team2[1].id===b)||(m.team2[0].id===b&&m.team2[1].id===a))c++;}
+      });return c;
+    };
+    const oppCountFor=(a,b)=>{
+      let c=0;
+      matchLog.forEach(m=>{
+        const inT1=m.team1.some(p=>p.id===a),inT2=m.team2.some(p=>p.id===a);
+        const inT1b=m.team1.some(p=>p.id===b),inT2b=m.team2.some(p=>p.id===b);
+        if((inT1&&inT2b)||(inT2&&inT1b))c++;
+      });return c;
+    };
+
+    // team pair badge (2 players)
+    const teamPairBadge=(pa,pb)=>{
+      const pt=partnerCountFor(pa.id,pb.id), op=oppCountFor(pa.id,pb.id);
+      if(!pt&&!op)return'';
+      return`<div style="font-size:10px;margin-top:2px;display:flex;gap:6px">
+        ${pt>0?`<span style="color:#818cf8">🤝${pt}</span>`:''}
+        ${op>0?`<span style="color:#f59e0b">⚔️${op}</span>`:''}
+      </div>`;
+    };
+    // vs pair badge (one from each team)
+    const vsPairBadges=(t1,t2)=>{
+      const pairs=[];
+      t1.forEach(a=>t2.forEach(b=>{
+        const op=oppCountFor(a.id,b.id),pt=partnerCountFor(a.id,b.id);
+        if(op||pt)pairs.push(`<span style="font-size:10px;color:#64748b">${a.name}×${b.name}: ${pt>0?`🤝${pt} `:''}${op>0?`⚔️${op}`:''}`.trim()+'</span>');
+      }));
+      return pairs.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${pairs.join('')}</div>`:'';
+    };
+
+    const playerRow=(p,courtId)=>{
+      const shutt=sShuttle[p.id]||0,paid=sPaid[p.id],games=sGames[p.id]||0;
+      return`<div class="flex sb" style="padding:5px 0;border-bottom:1px solid #0f172a">
+        <div>
+          <div class="flex gap6" style="align-items:center">
+            <span style="font-weight:800;font-size:15px">${p.name}</span>
+            ${badgeSession(p.level)}
+            <span class="badge ${paid?'paid-y':'paid-n'}" style="font-size:10px;padding:1px 5px">${paid?'💰':'⏳'}</span>
+            ${shutt>0?`<span class="badge shutt-b" style="font-size:10px">🏸${shutt}</span>`:''}
+            <span style="font-size:10px;color:#475569">🎮${games}</span>
           </div>
-          <button onclick="openSwapModal(${court.id},${p.id})" style="background:none;border:1px solid #334155;color:#f59e0b;cursor:pointer;border-radius:6px;padding:2px 7px;font-size:12px;flex-shrink:0">🔄</button>
-        </div>`;
-      }).join('')}
-      <button class="btn btn-green" style="width:100%;margin-top:6px;font-size:13px" onclick="finishMatch(${court.id},${num})">🏆 ทีมนี้ชนะ</button>
+        </div>
+        <button onclick="openSwapModal(${courtId},${p.id})" style="background:none;border:1px solid #334155;color:#f59e0b;cursor:pointer;border-radius:6px;padding:2px 8px;font-size:12px;flex-shrink:0;margin-left:6px">🔄</button>
+      </div>`;
+    };
+
+    const teamBox=(team,num,otherTeam)=>`<div class="team-box">
+      ${team.map(p=>playerRow(p,court.id)).join('')}
+      ${teamPairBadge(team[0],team[1])}
+      <button class="btn btn-green" style="width:100%;margin-top:8px;font-size:13px;padding:8px" onclick="finishMatch(${court.id},${num})">🏆 ทีมนี้ชนะ</button>
     </div>`;
+
     return`<div class="card highlight mb12">
-      <div class="flex sb mb10">
+      <div class="flex sb mb8">
         <span style="font-weight:800;color:#818cf8;font-size:15px">สนาม ${court.id} — กำลังเล่น</span>
         <div class="flex gap6">${hist}<button class="btn btn-yellow btn-sm" onclick="openCancelModal(${court.id})">✕ ยกเลิกเกม</button></div>
       </div>
-      <div class="vs-grid">${teamHtml(team1,1)}<div class="vs-lbl">VS</div>${teamHtml(team2,2)}</div>
+      <div class="vs-grid">${teamBox(team1,1,team2)}<div class="vs-lbl">VS</div>${teamBox(team2,2,team1)}</div>
+      ${vsPairBadges(team1,team2)?`<div style="border-top:1px solid #334155;margin-top:8px;padding-top:6px">${vsPairBadges(team1,team2)}</div>`:''}
     </div>`;
   }).join('');
 }
