@@ -885,23 +885,31 @@ function confirmSwap(inId,src,srcCid){
   const m=court.match;
 
   if(src==='same'){
-    // สลับตำแหน่งของ 2 คนในสนามเดียวกัน — อาจอยู่คนละทีมก็ได้
-    const rep=(team,fromId,toP)=>{const i=team.findIndex(p=>p.id===fromId);if(i!==-1){team[i]=toP;return true;}return false;};
-    // สลับใน team1/team2
+    const m=court.match;
     const outInT1=m.team1.some(p=>p.id===swapOutId);
-    const inInT1=m.team1.some(p=>p.id===inId);
+    const inInT1 =m.team1.some(p=>p.id===inId);
+
     if(outInT1===inInT1){
-      // อยู่ทีมเดียวกัน — สลับตำแหน่งกันในทีม
-      rep(outInT1?m.team1:m.team2, swapOutId, inP);
-      rep(inInT1?m.team1:m.team2, inId, outP);
+      // ทีมเดียวกัน — สลับตำแหน่งในทีมเดียวกัน
+      const t=outInT1?m.team1:m.team2;
+      const oi=t.findIndex(p=>p.id===swapOutId);
+      const ii=t.findIndex(p=>p.id===inId);
+      if(oi!==-1)t[oi]=inP;
+      if(ii!==-1)t[ii]=outP;
     } else {
-      // อยู่คนละทีม — สลับข้ามทีม
-      rep(m.team1, swapOutId, inP); rep(m.team2, swapOutId, inP);
-      rep(m.team1, inId, outP);     rep(m.team2, inId, outP);
+      // คนละทีม — หา index ก่อน แล้วค่อยแทนพร้อมกัน
+      const tOut=outInT1?m.team1:m.team2;
+      const tIn =inInT1 ?m.team1:m.team2;
+      const oi=tOut.findIndex(p=>p.id===swapOutId);
+      const ii=tIn.findIndex(p=>p.id===inId);
+      if(oi!==-1)tOut[oi]=inP;   // ใส่ inP เข้าทีมของ outP
+      if(ii!==-1)tIn[ii]=outP;   // ใส่ outP เข้าทีมของ inP
     }
     // อัปเดต allFour
-    const io=m.allFour.findIndex(p=>p.id===swapOutId);if(io!==-1)m.allFour[io]=inP;
-    const ii=m.allFour.findIndex(p=>p.id===inId);if(ii!==-1)m.allFour[ii]=outP;
+    const ao=m.allFour.findIndex(p=>p.id===swapOutId);
+    const ai=m.allFour.findIndex(p=>p.id===inId);
+    if(ao!==-1)m.allFour[ao]=inP;
+    if(ai!==-1)m.allFour[ai]=outP;
 
   } else {
     const rep=(team,fromId,toP)=>{const i=team.findIndex(p=>p.id===fromId);if(i!==-1){team[i]=toP;return true;}return false;};
